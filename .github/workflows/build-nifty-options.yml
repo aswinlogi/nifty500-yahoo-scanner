@@ -1,0 +1,47 @@
+name: Build NIFTY Options Analyzer APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'nifty_options_analyzer_github_ready.zip'
+      - '.github/workflows/build-nifty-options.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          rm -rf build_project
+          mkdir build_project
+          unzip -q nifty_options_analyzer_github_ready.zip -d build_project
+          find build_project -maxdepth 3 -type f | sort
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Create Android platform
+        working-directory: build_project/nifty_options_analyzer
+        run: flutter create --platforms=android .
+
+      - name: Get dependencies
+        working-directory: build_project/nifty_options_analyzer
+        run: flutter pub get
+
+      - name: Build release APK
+        working-directory: build_project/nifty_options_analyzer
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nifty-options-analyzer-apk
+          path: build_project/nifty_options_analyzer/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
